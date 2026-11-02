@@ -11,7 +11,7 @@ import { buildArguments } from '../backend/downloader.js';
 const video = 'https://www.youtube.com/watch?v=BaW_jenozKc';
 const token = 'a'.repeat(48);
 const password = 'private-test-password';
-const env = {BACKEND_TOKEN:token,APP_PASSWORD:password,PUBLIC_URL:'http://127.0.0.1:8080'};
+const env = {BACKEND_TOKEN:token,PUBLIC_URL:'http://127.0.0.1:8080'};
 
 test('normaliza enlaces y elimina listas, marcas de tiempo y parámetros ajenos',()=>{
   for (const link of ['https://youtu.be/BaW_jenozKc?t=10','https://music.youtube.com/watch?v=BaW_jenozKc&list=xxx','https://www.youtube.com/shorts/BaW_jenozKc','https://www.youtube.com/live/BaW_jenozKc']) assert.equal(normalizeYouTube(link),video);
@@ -39,7 +39,7 @@ async function fixture(t,download) {
   return {origin,app,proxyEnv:{...env,BACKEND_URL:origin}};
 }
 
-test('flujo HTTP: clave → crear → consultar → enlace protegido → archivo',async t=>{
+test('flujo HTTP público: crear → consultar → enlace protegido → archivo',async t=>{
   const content=Buffer.from('audio-fixture');
   const {origin,proxyEnv}=await fixture(t,async(job,folder,update)=>{
     update('Convirtiendo el archivo…');
@@ -47,7 +47,7 @@ test('flujo HTTP: clave → crear → consultar → enlace protegido → archivo
     return {file,name:'Canción de prueba.mp3',size:content.length};
   });
   assert.equal((await fetch(`${origin}/jobs`)).status,401);
-  assert.equal((await proxyRequest({method:'GET',action:'health',password:'wrong'},proxyEnv)).status,401);
+  assert.equal((await proxyRequest({method:'GET',action:'health'},proxyEnv)).status,200);
   assert.equal((await proxyRequest({method:'GET',action:'health',password},proxyEnv)).status,200);
   const created=await proxyRequest({method:'POST',action:'create',password,body:{url:video,format:'mp3',permission:true}},proxyEnv);
   assert.equal(created.status,202);
@@ -66,7 +66,7 @@ test('flujo HTTP: clave → crear → consultar → enlace protegido → archivo
   assert.deepEqual(Buffer.from(await file.arrayBuffer()),content);
   download.searchParams.set('key','incorrect');
   assert.equal((await fetch(download)).status,404);
-  const browser=await fetch(`${origin}/api/control?action=health`,{headers:{'x-access-key':password}});
+  const browser=await fetch(`${origin}/api/control?action=health`);
   assert.equal(browser.status,200);
   assert.equal((await fetch(origin)).status,200);
   assert.equal((await fetch(`${origin}/.env`)).status,401);
@@ -104,11 +104,10 @@ test('el proxy informa configuración incompleta sin inventar éxito',async()=>{
   assert.equal(result.status,503);
 });
 
-test('Vercel conecta sin guardar secretos y Render rechaza una clave incorrecta',async t=>{
+test('Vercel conecta sin contraseña y sigue rechazando enlaces externos',async t=>{
   const {origin}=await fixture(t,async()=>{throw new Error('No debería descargar en esta prueba');});
   const vercelEnv={BACKEND_URL:origin};
-  assert.equal((await relayRequest({method:'GET',action:'health',password},vercelEnv)).status,200);
-  assert.equal((await relayRequest({method:'GET',action:'health',password:'incorrect-password'},vercelEnv)).status,401);
+  assert.equal((await relayRequest({method:'GET',action:'health'},vercelEnv)).status,200);
   assert.equal((await relayRequest({method:'GET',action:'health',password},{})).status,503);
   assert.equal((await relayRequest({method:'POST',action:'create',password,body:{url:'https://example.com',format:'mp3',permission:true}},vercelEnv)).status,400);
 });
@@ -119,10 +118,9 @@ test('el servidor genera un token interno cuando falta o es corto',async t=>{
     await new Promise(resolve=>app.listen(0,'127.0.0.1',resolve));
     try {
       const origin=`http://127.0.0.1:${app.address().port}`;
-      const response=await fetch(`${origin}/api/control?action=health`,{headers:{'x-access-key':password}});
+      const response=await fetch(`${origin}/api/control?action=health`);
       assert.equal(response.status,200);
       assert.equal((await fetch(`${origin}/health`,{headers:{authorization:'Bearer short'}})).status,401);
     } finally {await new Promise(resolve=>app.close(resolve));}
   }
-  assert.throws(()=>createApp({env:{...env,APP_PASSWORD:'short'}}),/APP_PASSWORD debe tener/);
 });

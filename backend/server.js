@@ -14,8 +14,6 @@ const ttl = 15 * 60 * 1000;
 const token = () => randomBytes(24).toString('hex');
 
 export function createApp({env=process.env, download=runDownload, directory=path.join(root,'downloads')}={}) {
-  if (!env.APP_PASSWORD) throw new Error('Falta APP_PASSWORD en las variables de Render.');
-  if (env.APP_PASSWORD.length < 12) throw new Error('APP_PASSWORD debe tener al menos 12 caracteres. Actualiza esa contraseña en Render.');
   // El token solo protege llamadas internas. Si no se configuró uno válido,
   // genera uno por proceso; Vercel no necesita conocerlo.
   const backendToken = env.BACKEND_TOKEN?.length >= 32 ? env.BACKEND_TOKEN : randomBytes(32).toString('hex');
@@ -77,7 +75,7 @@ export function createApp({env=process.env, download=runDownload, directory=path
       // El mismo frontend funciona localmente y en Docker, sin un proxy adicional.
       if (url.pathname === '/api/control') {
         const body = req.method === 'POST' ? await readJson(req) : undefined;
-        const result = await proxyRequest({method:req.method,action:url.searchParams.get('action'),id:url.searchParams.get('id'),password:req.headers['x-access-key'],body},
+        const result = await proxyRequest({method:req.method,action:url.searchParams.get('action'),id:url.searchParams.get('id'),body},
           {...serviceEnv,BACKEND_URL:`http://127.0.0.1:${server.address().port}`});
         return json(res,result.status,result.data);
       }

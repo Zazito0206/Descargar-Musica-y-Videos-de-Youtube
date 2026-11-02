@@ -11,13 +11,13 @@ async function api(action,body,id) {
   if (id) params.set('id',id);
   const response = await fetch(`/api/control?${params}`,{
     method:body ? 'POST' : 'GET',
-    headers:{'Content-Type':'application/json','X-Access-Key':$('#access-key').value},
+    headers:{'Content-Type':'application/json'},
     body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(25000)
   });
   let data;
   try {data = await response.json();} catch {throw new Error('El servidor devolvió una respuesta inesperada. Revisa la configuración del despliegue.');}
   if (!response.ok) {
-    if (response.status === 401) setConnection(false);
+    setConnection(false);
     throw new Error(data.error || 'No se pudo completar la solicitud.');
   }
   setConnection(true);
@@ -28,10 +28,8 @@ function setConnection(ok) {
   $('#connection').textContent = ok ? 'Conectado' : 'Sin conectar';
   $('#connection').classList.toggle('connected',ok);
 }
-$('#access-key').addEventListener('input',()=>setConnection(false));
 
 $('#connect').addEventListener('click',async()=>{
-  if (!$('#access-key').reportValidity()) return;
   $('#connect').disabled=true;notice.textContent='';
   try {
     await api('health');
@@ -93,4 +91,4 @@ form.addEventListener('submit',async event=>{
   } catch (error) {notice.textContent=error.message;}
   finally {submit.disabled=false;}
 });
-if (storedJob) notice.textContent='Hay una descarga anterior. Introduce tu clave y pulsa Conectar para recuperar su estado.';
+if (storedJob) notice.textContent='Hay una descarga anterior. Pulsa Comprobar conexión para recuperar su estado.';
