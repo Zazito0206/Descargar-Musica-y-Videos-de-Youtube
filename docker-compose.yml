@@ -1,0 +1,17 @@
+services:
+  sonora:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      BACKEND_TOKEN: ${BACKEND_TOKEN:?Define BACKEND_TOKEN}
+      APP_PASSWORD: ${APP_PASSWORD:?Define APP_PASSWORD}
+      PUBLIC_URL: ${PUBLIC_URL:?Define PUBLIC_URL}
+    mem_limit: 1536m
+    cpus: 1.5
+    tmpfs:
+      - /app/downloads:uid=1000,gid=1000,size=2g
+    security_opt:
+      - no-new-privileges:true
