@@ -25,15 +25,15 @@ YouTube puede bloquear las IP de alojamientos, pedir autenticación o cambiar su
 4. Incluye los archivos ocultos `.gitignore`, `.dockerignore`, `.env.example` y `.github/workflows/check.yml` si subes con Git.
 5. Nunca subas `.env` con tus claves ni la carpeta `downloads`.
 
-## 2. Preparar dos claves
+## 2. Preparar la clave de acceso
 
-Genera dos valores aleatorios distintos, uno para `BACKEND_TOKEN` (al menos 32 caracteres) y otro para `APP_PASSWORD` (al menos 12 caracteres). Puedes usar un gestor de contraseñas o ejecutar dos veces:
+Genera una clave aleatoria para `APP_PASSWORD` (al menos 12 caracteres). Puedes usar un gestor de contraseñas o ejecutar:
 
 ```text
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-`APP_PASSWORD` es la clave que escribirás al entrar a la web. `BACKEND_TOKEN` es un secreto interno: solo va en las variables del servidor Docker, nunca en el navegador, Vercel o el repositorio. Todas las personas con la clave de acceso comparten la misma instancia; no hay cuentas individuales.
+`APP_PASSWORD` es la clave que escribirás al entrar a la web. El servidor genera automáticamente su token interno. La variable opcional `BACKEND_TOKEN` permite definirlo explícitamente con al menos 32 caracteres; no se configura en Vercel. Todas las personas con la clave de acceso comparten la misma instancia; no hay cuentas individuales.
 
 ## 3. Alojar el servicio de descargas
 
@@ -45,7 +45,6 @@ Configura estas variables:
 
 | Variable | Valor |
 | --- | --- |
-| `BACKEND_TOKEN` | El secreto interno que generaste |
 | `APP_PASSWORD` | Tu clave de acceso |
 | `PUBLIC_URL` | La URL HTTPS pública de este servicio, por ejemplo `https://descargas.tudominio.com` |
 | `PORT` | `8080` |
@@ -56,7 +55,7 @@ El Dockerfile incluye Node, Python, FFmpeg, Deno y yt-dlp. Su construcción nece
 
 ### En tu propio Linux con Docker Compose
 
-1. Copia `.env.example` a `.env` y completa `BACKEND_TOKEN`, `APP_PASSWORD` y `PUBLIC_URL`.
+1. Copia `.env.example` a `.env` y completa `APP_PASSWORD` y `PUBLIC_URL`. Puedes dejar `BACKEND_TOKEN` vacío.
 2. Ejecuta `docker compose up -d --build`.
 3. El servicio queda en `127.0.0.1:8080`. Pon delante un proxy HTTPS (por ejemplo Caddy o el proxy de tu alojamiento) para tu dominio público. Un Caddyfile mínimo:
 
@@ -92,7 +91,7 @@ GitHub Pages solo sirve archivos estáticos y no puede ejecutar la API de este p
 
 Requiere Node 22 o posterior, Python 3.11 o posterior, FFmpeg y Deno. Instala yt-dlp con `python -m pip install "yt-dlp[default]==2026.10.26"` y asegúrate de que el comando `yt-dlp` esté disponible. Si no está en PATH, establece `YTDLP_PATH` con la ruta completa de su ejecutable.
 
-Copia `.env.example` a `.env`, define las dos claves y usa `PUBLIC_URL=http://localhost:8080`. Ejecuta `npm start` y abre `http://localhost:8080`. El mismo servidor sirve la interfaz y la API. Esto permite usar la web en tu equipo sin Vercel, aunque no verifica que el servidor público pueda acceder a YouTube.
+Copia `.env.example` a `.env`, define `APP_PASSWORD` y usa `PUBLIC_URL=http://localhost:8080`. Ejecuta `npm start` y abre `http://localhost:8080`. El mismo servidor sirve la interfaz y la API. Esto permite usar la web en tu equipo sin Vercel, aunque no verifica que el servidor público pueda acceder a YouTube.
 
 ## Límites y mantenimiento
 

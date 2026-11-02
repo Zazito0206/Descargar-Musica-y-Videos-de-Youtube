@@ -14,7 +14,12 @@ const ttl = 15 * 60 * 1000;
 const token = () => randomBytes(24).toString('hex');
 
 export function createApp({env=process.env, download=runDownload, directory=path.join(root,'downloads')}={}) {
-  if (!env.BACKEND_TOKEN || env.BACKEND_TOKEN.length < 32 || !env.APP_PASSWORD || env.APP_PASSWORD.length < 12) throw new Error('Configura BACKEND_TOKEN (32+ caracteres) y APP_PASSWORD (12+ caracteres).');
+  if (!env.APP_PASSWORD) throw new Error('Falta APP_PASSWORD en las variables de Render.');
+  if (env.APP_PASSWORD.length < 12) throw new Error('APP_PASSWORD debe tener al menos 12 caracteres. Actualiza esa contraseña en Render.');
+  // El token solo protege llamadas internas. Si no se configuró uno válido,
+  // genera uno por proceso; Vercel no necesita conocerlo.
+  const backendToken = env.BACKEND_TOKEN?.length >= 32 ? env.BACKEND_TOKEN : randomBytes(32).toString('hex');
+  const serviceEnv = {...env, BACKEND_TOKEN:backendToken};
   const publicAddress = env.PUBLIC_URL || env.RENDER_EXTERNAL_URL;
   if (!publicAddress) throw new Error('Configura PUBLIC_URL con la URL pública del servidor.');
   const publicUrl = new URL(publicAddress);
@@ -73,7 +78,7 @@ export function createApp({env=process.env, download=runDownload, directory=path
       if (url.pathname === '/api/control') {
         const body = req.method === 'POST' ? await readJson(req) : undefined;
         const result = await proxyRequest({method:req.method,action:url.searchParams.get('action'),id:url.searchParams.get('id'),password:req.headers['x-access-key'],body},
-          {...env,BACKEND_URL:`http://127.0.0.1:${server.address().port}`});
+          {...serviceEnv,BACKEND_URL:`http://127.0.0.1:${server.address().port}`});
         return json(res,result.status,result.data);
       }
       if (['/','/index.html','/app.js','/styles.css','/favicon.svg'].includes(url.pathname) && req.method === 'GET') {
@@ -84,7 +89,7 @@ export function createApp({env=process.env, download=runDownload, directory=path
         res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
         return res.end(await readFile(path.join(root,'public',file)));
       }
-      if (!matches(req.headers.authorization,`Bearer ${env.BACKEND_TOKEN}`)) return json(res,401,{error:'Acceso no autorizado.'});
+      if (!matches(req.headers.authorization,`Bearer ${backendToken}`)) return json(res,401,{error:'Acceso no autorizado.'});
       if (url.pathname === '/health' && req.method === 'GET') return json(res,200,{ok:true,active:[...jobs.values()].filter(j=>['queued','working'].includes(j.state)).length});
       if (url.pathname === '/jobs' && req.method === 'POST') {
         const body = await readJson(req);

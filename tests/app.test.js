@@ -112,3 +112,17 @@ test('Vercel conecta sin guardar secretos y Render rechaza una clave incorrecta'
   assert.equal((await relayRequest({method:'GET',action:'health',password},{})).status,503);
   assert.equal((await relayRequest({method:'POST',action:'create',password,body:{url:'https://example.com',format:'mp3',permission:true}},vercelEnv)).status,400);
 });
+
+test('el servidor genera un token interno cuando falta o es corto',async t=>{
+  for (const BACKEND_TOKEN of ['', 'short']) {
+    const app=createApp({env:{...env,BACKEND_TOKEN}});
+    await new Promise(resolve=>app.listen(0,'127.0.0.1',resolve));
+    try {
+      const origin=`http://127.0.0.1:${app.address().port}`;
+      const response=await fetch(`${origin}/api/control?action=health`,{headers:{'x-access-key':password}});
+      assert.equal(response.status,200);
+      assert.equal((await fetch(`${origin}/health`,{headers:{authorization:'Bearer short'}})).status,401);
+    } finally {await new Promise(resolve=>app.close(resolve));}
+  }
+  assert.throws(()=>createApp({env:{...env,APP_PASSWORD:'short'}}),/APP_PASSWORD debe tener/);
+});

@@ -8,7 +8,7 @@ Repositorio: https://github.com/Zazito0206/Descargar-Musica-y-Videos-de-Youtube
 2. Conecta GitHub y selecciona este repositorio. Si no aparece, concede acceso a este repositorio en la integración de GitHub.
 3. Configura nombre `sonora-descargas`, rama `main`, lenguaje/runtime `Docker`, raíz vacía y Dockerfile `./Dockerfile`. Conserva el comando de inicio del Dockerfile. Una sola instancia.
 4. Elige una región cercana a tus usuarios y un tamaño con 2 GB de memoria. Consulta los precios antes de contratar; no hace falta un plan de equipo de pago para seleccionar el tamaño del servicio. La tarifa de cómputo y el consumo son conceptos distintos.
-5. En Environment añade `BACKEND_TOKEN` (secreto aleatorio de al menos 32 caracteres), `APP_PASSWORD` (otra clave de al menos 12 caracteres) y `PORT=8080`. Guarda las claves en tu gestor de contraseñas. Solo se configuran en Render. No las pegues en el chat ni las subas a GitHub.
+5. En Environment añade `APP_PASSWORD` (una clave de al menos 12 caracteres) y `PORT=8080`. Render genera automáticamente el token interno; no hace falta configurar `BACKEND_TOKEN`. Guarda tu contraseña en un gestor. No la pegues en el chat ni la subas a GitHub.
 6. En Health Check Path escribe `/healthz`.
 7. Revisa la tarifa del servicio y despliega cuando estés de acuerdo. El código usa automáticamente `RENDER_EXTERNAL_URL`, una variable que Render proporciona, por lo que no necesitas definir `PUBLIC_URL` manualmente.
 8. Espera a que el servicio indique Live y copia su dirección `https://....onrender.com`. Abre esa dirección seguida de `/healthz`: debe responder `{"ok":true}`.
