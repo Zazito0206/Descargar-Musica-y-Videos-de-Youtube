@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createApp } from '../backend/server.js';
 import { normalizeYouTube, validateJob } from '../lib/validation.js';
-import { proxyRequest } from '../api/control.js';
+import { proxyRequest, relayRequest } from '../api/control.js';
 import { buildArguments } from '../backend/downloader.js';
 
 const video = 'https://www.youtube.com/watch?v=BaW_jenozKc';
@@ -102,4 +102,13 @@ test('cola acotada: solo un proceso activo y hasta cuatro solicitudes pendientes
 test('el proxy informa configuración incompleta sin inventar éxito',async()=>{
   const result=await proxyRequest({method:'GET',action:'health',password},{});
   assert.equal(result.status,503);
+});
+
+test('Vercel conecta sin guardar secretos y Render rechaza una clave incorrecta',async t=>{
+  const {origin}=await fixture(t,async()=>{throw new Error('No debería descargar en esta prueba');});
+  const vercelEnv={BACKEND_URL:origin};
+  assert.equal((await relayRequest({method:'GET',action:'health',password},vercelEnv)).status,200);
+  assert.equal((await relayRequest({method:'GET',action:'health',password:'incorrect-password'},vercelEnv)).status,401);
+  assert.equal((await relayRequest({method:'GET',action:'health',password},{})).status,503);
+  assert.equal((await relayRequest({method:'POST',action:'create',password,body:{url:'https://example.com',format:'mp3',permission:true}},vercelEnv)).status,400);
 });

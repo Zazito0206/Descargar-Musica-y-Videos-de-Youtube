@@ -11,7 +11,7 @@ Navegador → web y API en Vercel → servidor Docker con yt-dlp y FFmpeg
 Navegador ← archivo descargado directamente desde el servidor Docker
 ```
 
-GitHub guarda el código. Vercel sirve la interfaz y verifica la clave antes de solicitar trabajos. El servidor Docker descarga, convierte y entrega los archivos. No se envían los videos grandes a través de la función de Vercel. No hace falta instalar nada a los visitantes.
+GitHub guarda el código. Vercel sirve la interfaz y envía a Render por HTTPS la clave que el usuario introduce, sin guardarla como variable. Render valida la clave, descarga, convierte y entrega los archivos. No se envían los videos grandes a través de la función de Vercel. No hace falta instalar nada a los visitantes.
 
 **Necesitas un servidor Docker con URL pública HTTPS además de Vercel.** No basta con subir estos archivos a GitHub y pulsar Deploy: primero debes alojar ese servicio y configurar sus secretos. Puedes usar un servidor Linux propio o un alojamiento que mantenga contenedores activos. No uses este backend con estado en una función efímera de Vercel. Los trabajos son temporales y se pierden al reiniciar; debe ejecutarse una sola réplica.
 
@@ -33,7 +33,7 @@ Genera dos valores aleatorios distintos, uno para `BACKEND_TOKEN` (al menos 32 c
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-`APP_PASSWORD` es la clave que escribirás al entrar a la web. `BACKEND_TOKEN` es un secreto interno: solo va en las variables de los servidores, nunca en el navegador o el repositorio. Todas las personas con la clave de acceso comparten la misma instancia; no hay cuentas individuales.
+`APP_PASSWORD` es la clave que escribirás al entrar a la web. `BACKEND_TOKEN` es un secreto interno: solo va en las variables del servidor Docker, nunca en el navegador, Vercel o el repositorio. Todas las personas con la clave de acceso comparten la misma instancia; no hay cuentas individuales.
 
 ## 3. Alojar el servicio de descargas
 
@@ -78,8 +78,8 @@ El Dockerfile incluye Node, Python, FFmpeg, Deno y yt-dlp. Su construcción nece
    | Variable | Valor |
    | --- | --- |
    | `BACKEND_URL` | La URL HTTPS del servicio Docker, sin rutas ni `/` final |
-   | `BACKEND_TOKEN` | Exactamente el mismo secreto que en Docker |
-   | `APP_PASSWORD` | Exactamente la misma clave que en Docker |
+
+   No añadas las dos claves a Vercel: Render verifica la contraseña que introduzcas en la web.
 
 5. Activa las variables para **Production** y para **Preview** solo si deseas usar también vistas previas. Pulsa **Deploy**.
 6. Abre tu URL de Vercel, introduce la clave de acceso y pulsa **Conectar**.
